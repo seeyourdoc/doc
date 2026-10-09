@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Support the doctor</title><link rel="stylesheet" href="css/style.css">
+</head><body>
+<header id="site-header" class="site"></header>
+<main><div class="wrap">
+  <h1 id="h">Support the Doctor</h1>
+  <p class="muted" id="t">Your contribution helps support the doctor and keep the service available to people who need online medical consultations.</p>
+  <div id="off" class="closed-note hidden">Contributions are not open right now. <a href="index.html">Back to home</a></div>
+  <form id="form" class="card" novalidate>
+    <div id="err" class="err hidden" role="alert"></div>
+    <label class="f" for="name">Name (optional)</label><input id="name" type="text" autocomplete="name" maxlength="120">
+    <label class="f" for="email">Email (optional)</label><input id="email" type="email" autocomplete="email" maxlength="200">
+    <label class="f" for="amount">Contribution amount (<span id="cur">USD</span>)</label>
+    <div class="chips" id="chips"></div>
+    <input id="amount" type="number" inputmode="decimal" min="1" step="0.01">
+    <button type="button" class="btn btn-primary" style="margin-top:20px" id="go">CONTRIBUTE NOW</button>
+  </form>
+</div></main>
+<footer id="site-footer" class="site"></footer>
+<script src="js/config.js"></script><script src="js/common.js"></script>
+<script>
+(async () => {
+  const s = await loadSite({ title: 'Support the doctor' });
+  $('#h').textContent = s.support_heading; $('#t').textContent = s.support_text; $('#cur').textContent = s.currency;
+  if (!s.contributions_enabled) { $('#form').classList.add('hidden'); $('#off').classList.remove('hidden'); return; }
+  const min = s.contribution_min_cents / 100; $('#amount').min = min;
+  $('#chips').innerHTML = [5, 10, 25, 50].filter((n) => n >= min).map((n) => `<button type="button" data-v="${n}">${money(n * 100, s.currency)}</button>`).join('');
+  $('#chips').onclick = (e) => { if (e.target.dataset.v) $('#amount').value = e.target.dataset.v; };
+  const fail = (m) => { const e = $('#err'); e.textContent = m; e.classList.remove('hidden'); };
+  $('#go').onclick = async () => {
+    const amount = parseFloat($('#amount').value), email = $('#email').value.trim();
+    if (!(amount >= min)) return fail(`Please enter an amount of at least ${money(min * 100, s.currency)}.`);
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) return fail('Please enter a valid email address or leave it blank.');
+    const b = $('#go'); b.disabled = true; b.textContent = 'OPENING PAYMENT…';
+    try { const r = await api('/api/contributions', { method: 'POST', body: { name: $('#name').value.trim(), email, amount } }); location.href = r.authorization_url; }
+    catch (e) { b.disabled = false; b.textContent = 'CONTRIBUTE NOW'; fail(e.message); }
+  };
+})();
+</script></body></html>
