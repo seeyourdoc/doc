@@ -33,6 +33,8 @@
   }
 
   let live = false, pollTimer;
+  let room = null;
+  const LK = window.LivekitClient;
   function apply() {
     const wasLive = live;
     live = renderHead();
@@ -77,23 +79,47 @@
   $('#box').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
 
   // ---------- video (LiveKit) ----------
-  let room = null;
-  const LK = window.LivekitClient;
   const stateText = { connected: 'Connected', connecting: 'Connecting…', reconnecting: 'Connection lost, reconnecting…', disconnected: 'Disconnected' };
   const setConn = (st) => { $('#conn').textContent = stateText[st] || st; };
   const updateWait = () => {
     const has = $('#remote').querySelector('video');
     $('#wait').classList.toggle('hidden', !!has);
-    if (!has && room) $('#wait').textContent = `Waiting for the ${isStaff ? 'patient' : 'doctor'} to join…`;
+    const other = isStaff ? 'patient' : 'doctor';
+    if (!has && room) $('#wait').textContent = room.remoteParticipants.size
+      ? `The ${other} has joined, but their camera is off or unavailable.`
+      : `Waiting for the ${other} to join…`;
   };
   function showJoin() {
     $('#vctl').innerHTML = '<button class="btn btn-primary btn-sm" id="join">Join video consultation</button>';
     $('#join').onclick = join; $('#remote').innerHTML = ''; $('#local').innerHTML = '';
     $('#wait').classList.remove('hidden'); $('#wait').textContent = 'Press “Join video consultation” to start.';
   }
-  function leaveVideo() { if (room) { room.disconnect(); room = null; } }
+  function leaveVideo() { exitFs(); if (room) { room.disconnect(); room = null; } }
+  // ---------- full screen ----------
+  function fsEl() { return $('#video'); }
+  function inFs() { return document.fullscreenElement === fsEl() || fsEl().classList.contains('pseudo-fs'); }
+  function setFsLabel() { const b = $('#fs'); if (b) b.textContent = inFs() ? 'Exit full screen' : 'Full screen'; }
+  function exitFs() {
+    const el = fsEl();
+    el.classList.remove('pseudo-fs');
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    setFsLabel();
+  }
+  async function toggleFs() {
+    if (inFs()) return exitFs();
+    const el = fsEl();
+    try {
+      if (el.requestFullscreen) await el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      else el.classList.add('pseudo-fs'); // iPhone Safari cannot fullscreen a page element
+    } catch { el.classList.add('pseudo-fs'); }
+    setFsLabel();
+  }
+  document.addEventListener('fullscreenchange', setFsLabel);
+
   function controls() {
-    $('#vctl').innerHTML = '<button class="btn btn-outline btn-sm" id="mic">Mute</button><button class="btn btn-outline btn-sm" id="cam">Turn camera off</button><button class="btn btn-danger btn-sm" id="leave">Leave consultation</button>';
+    $('#vctl').innerHTML = '<button class="btn btn-outline btn-sm" id="mic">Mute</button><button class="btn btn-outline btn-sm" id="cam">Turn camera off</button><button class="btn btn-outline btn-sm" id="fs">Full screen</button><button class="btn btn-danger btn-sm" id="leave">Leave consultation</button>';
+    $('#fs').onclick = toggleFs;
     $('#mic').onclick = async () => { const on = room.localParticipant.isMicrophoneEnabled; await room.localParticipant.setMicrophoneEnabled(!on); $('#mic').textContent = on ? 'Unmute' : 'Mute'; };
     $('#cam').onclick = async () => { const on = room.localParticipant.isCameraEnabled; await room.localParticipant.setCameraEnabled(!on); $('#cam').textContent = on ? 'Turn camera on' : 'Turn camera off'; attachLocal(); };
     $('#leave').onclick = () => { leaveVideo(); showJoin(); setConn('disconnected'); };
@@ -115,6 +141,7 @@
         updateWait();
       });
       room.on(E.TrackUnsubscribed, (track) => { track.detach().forEach((el) => el.remove()); updateWait(); });
+      room.on(E.ParticipantConnected, updateWait);
       room.on(E.ParticipantDisconnected, updateWait);
       room.on(E.ConnectionStateChanged, setConn);
       room.on(E.Disconnected, () => { room = null; showJoin(); setConn('disconnected'); });
