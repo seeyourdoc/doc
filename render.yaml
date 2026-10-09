@@ -1,0 +1,52 @@
+# Render Blueprint for the SeeYourDoctor API.
+# Keep this file at the root of your GitHub repo. The website (web/) is NOT deployed here;
+# it goes on GitHub Pages.
+services:
+  - type: web
+    name: seeyourdoctor-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    # "free" sleeps after inactivity, which can delay checkout and webhooks.
+    # Use "starter" or higher for a live booking service.
+    plan: starter
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+
+      # Public addresses (not secret, but you must set them)
+      - key: FRONTEND_URL        # e.g. https://yourname.github.io/seeyourdoctor
+        sync: false
+      - key: ALLOWED_ORIGINS     # e.g. https://yourname.github.io
+        sync: false
+
+      # Supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+      # Paystack
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+
+      # LiveKit
+      - key: LIVEKIT_URL         # e.g. wss://your-project.livekit.cloud
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+
+      # Email (optional; the app still runs without these)
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM           # e.g. SeeYourDoctor <bookings@yourdomain.com>
+        sync: false
+      - key: ADMIN_NOTIFY_EMAIL
+        sync: false
