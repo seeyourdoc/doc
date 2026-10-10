@@ -17,8 +17,11 @@ render.yaml  Render Blueprint for the API
 ## 2. Video (LiveKit)
 Create a LiveKit Cloud project and copy the WebSocket URL, API key and API secret. Rooms are created on demand per booking; recording is never started.
 
-## 3. Email (Resend)
-Create an API key and verify a sending domain. Without a key the app still works and logs emails as "skipped" in the `notifications` table.
+## 3. Email
+Patient emails (booking confirmed, reminder, "your consultation is open", doctor sent a message, access ending, access ended) need an email provider. Without one the app still works and logs emails as "skipped" in the `notifications` table.
+- **Gmail, no domain needed:** use a Gmail account (a dedicated one is best). Turn on 2-Step Verification, then create an App Password at myaccount.google.com/apppasswords. Set `GMAIL_USER` to the address and `GMAIL_APP_PASSWORD` to the 16-character password. Gmail allows roughly 500 emails a day.
+- **Resend:** create an API key and verify a sending domain, then set `RESEND_API_KEY` and `MAIL_FROM`. Without a verified domain Resend only delivers to your own address.
+After setting it, open **Website Settings > Email** in the admin dashboard and press **Send test email**.
 
 ## 4. Paystack
 - Enable **USD** on your account, and **Apple Pay** under Settings > Preferences > Payment channels (if available for your account).

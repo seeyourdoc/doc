@@ -2,7 +2,8 @@ import { db } from './config.js';
 import { getSettings } from './lib/settings.js';
 import { sendMail } from './lib/mailer.js';
 import * as mail from './lib/emails.js';
-import { roomStatus, toConsultStatus } from './lib/rooms.js';
+import { toConsultStatus } from './lib/rooms.js';
+import { planRoomNotices } from './lib/plan.js';
 import { finalizeBooking, markFailed } from './lib/payments.js';
 
 // Runs every minute: expiry emails, reminders, status sync, and recovery of missed payment callbacks.
@@ -13,21 +14,19 @@ async function tick() {
   const { data: rooms } = await db
     .from('consultation_rooms')
     .select('*, bookings(*, users(*))')
-    .or(`expiry_notified.eq.false,reminder_sent.eq.false`)
+    .or('expiry_notified.eq.false,reminder_sent.eq.false,open_notified.eq.false,ending_notified.eq.false')
     .limit(200);
 
   for (const room of rooms || []) {
     const b = room.bookings;
-    const st = roomStatus(room, now.getTime());
-    if (!room.reminder_sent && st === 'scheduled' && new Date(room.starts_at) - now < 60 * 60000) {
-      await db.from('consultation_rooms').update({ reminder_sent: true }).eq('id', room.id);
-      await sendMail({ to: b.users.email, ...mail.reminder(s, b, room), kind: 'reminder', bookingId: b.id });
+    const plan = planRoomNotices(room, now.getTime());
+    // Mark as sent first, so a slow or failing email can never be sent twice.
+    if (Object.keys(plan.set).length) await db.from('consultation_rooms').update(plan.set).eq('id', room.id);
+    for (const kind of plan.send) {
+      const m = { reminder: () => mail.reminder(s, b, room), open: () => mail.consultationOpen(s, b, room), ending: () => mail.endingSoon(s, b, room), expired: () => mail.expired(s, b) }[kind]();
+      await sendMail({ to: b.users.email, ...m, kind: kind === 'ending' ? 'ending_soon' : kind, bookingId: b.id });
     }
-    if (!room.expiry_notified && st === 'expired') {
-      await db.from('consultation_rooms').update({ expiry_notified: true }).eq('id', room.id);
-      await sendMail({ to: b.users.email, ...mail.expired(s, b), kind: 'expired', bookingId: b.id });
-    }
-    const next = toConsultStatus(st);
+    const next = toConsultStatus(plan.st);
     if (b.consultation_status !== next && b.payment_status === 'success') {
       await db.from('bookings').update({ consultation_status: next }).eq('id', b.id);
     }

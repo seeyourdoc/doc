@@ -90,6 +90,13 @@
         <label class="f" for="min">Minimum contribution</label><input id="min" type="number" min="1" step="0.01" value="${(S.contribution_min_cents / 100).toFixed(2)}">
         ${txt('support_heading', 'Support page heading')}${area('support_text', 'Support page text')}</div>
         <button class="btn btn-primary" style="margin-top:22px">SAVE SETTINGS</button></form>`;
+      main.insertAdjacentHTML('beforeend', `<h2 style="margin-top:28px">Email</h2><div class="card" style="max-width:760px"><p class="muted" style="margin-top:0">Send yourself a test to check that patient emails are set up.</p><label class="f" for="te">Send test email to</label><input id="te" type="email" value="${esc(S.contact_email || '')}"><button type="button" class="btn btn-outline btn-sm" style="margin-top:12px" id="tebtn">Send test email</button><p class="muted" id="teout" style="margin-bottom:0"></p></div>`);
+      $('#tebtn').onclick = guard(async () => {
+        const to = $('#te').value.trim(); if (!to) return toast('Enter an email address first');
+        $('#teout').textContent = 'Sending…';
+        const r = await A('/test-email', { method: 'POST', body: { to } });
+        $('#teout').textContent = r.ok ? 'Sent. Check the inbox, and the spam folder too.' : `Not sent (${r.status}): ${r.error || 'unknown error'}`;
+      });
       const info = () => { const v = $('#countdown_target').value; $('#cd_info').textContent = v ? (new Date(v) > new Date() ? `Countdown expires ${fmtDT(toISO(v))}.` : 'This time has passed, so booking is closed.') : 'No countdown time set.'; };
       $('#countdown_target').oninput = info; info();
       $('#cd_set').onclick = () => { const ms = (Number($('#cd_days').value) * 24 + Number($('#cd_hours').value)) * 3600e3; $('#countdown_target').value = toLocal(new Date(Date.now() + ms).toISOString()); $('#countdown_enabled').checked = true; info(); };

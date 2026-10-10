@@ -52,6 +52,35 @@ export function reminder(s, b, room) {
   };
 }
 
+export function consultationOpen(s, b, room) {
+  return {
+    subject: `Your consultation is open — ${b.booking_code}`,
+    html: layout(s, 'Your consultation is open', `
+      <p>Hello ${esc(b.users.full_name)}, your consultation room is now open. You can go in whenever you are ready.</p>
+      ${rows([['Booking ID', b.booking_code], ['Access ends (UTC)', utc(room.expires_at)]])}
+      ${button(consultUrl(room.access_token), b.consultation_type === 'chat' ? 'Open chat with doctor' : 'Join video consultation')}`)
+  };
+}
+
+export function endingSoon(s, b, room) {
+  return {
+    subject: `Your consultation access ends soon — ${b.booking_code}`,
+    html: layout(s, 'Your consultation access ends soon', `
+      <p>Hello ${esc(b.users.full_name)}, your access to booking <strong>${esc(b.booking_code)}</strong> ends at <strong>${esc(utc(room.expires_at))}</strong>, in about 30 minutes. Please finish any remaining questions before then.</p>
+      ${button(consultUrl(room.access_token), 'Open consultation')}`)
+  };
+}
+
+// Deliberately says nothing about what the message contains: email is not a private channel.
+export function doctorMessage(s, b, room) {
+  return {
+    subject: 'You have a new message from your doctor',
+    html: layout(s, 'You have a new message', `
+      <p>Hello ${esc(b.users.full_name)}, your doctor sent you a message in your consultation. Open it to read and reply.</p>
+      ${button(consultUrl(room.access_token), 'Open consultation')}`)
+  };
+}
+
 export function expired(s, b) {
   return {
     subject: `Your consultation period has ended — ${b.booking_code}`,

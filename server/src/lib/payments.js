@@ -4,6 +4,7 @@ import { getSettings } from './settings.js';
 import { sendMail } from './mailer.js';
 import * as mail from './emails.js';
 import { urlToken, one } from './util.js';
+import { EARLY_MS } from './rooms.js';
 import { randomUUID } from 'node:crypto';
 
 const SAFE_KEYS = ['id', 'status', 'amount', 'currency', 'channel', 'paid_at', 'reference', 'gateway_response'];
@@ -92,7 +93,11 @@ async function activateBooking(bookingId) {
       access_token: urlToken(),
       livekit_room: `syd-${randomUUID()}`,
       starts_at: starts.toISOString(),
-      expires_at: expires.toISOString()
+      expires_at: expires.toISOString(),
+      // The confirmation email already carries the link, so skip reminders that would arrive at the same moment.
+      reminder_sent: starts.getTime() - Date.now() < 60 * 60000,
+      open_notified: starts.getTime() - Date.now() <= EARLY_MS,
+      ending_notified: b.duration_minutes <= 45
     })
     .select()
     .single();

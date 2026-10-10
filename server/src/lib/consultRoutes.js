@@ -2,6 +2,8 @@ import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { wrap, validate, HttpError } from './util.js';
 import { assertAccessible, roomInfo, listMessages, postMessage, videoToken } from './rooms.js';
+import { touchPatient } from './presence.js';
+import { notifyDoctorMessage } from './notify.js';
 
 const msgSchema = z.object({ body: z.string().trim().min(1).max(4000) });
 const msgLimiter = rateLimit({ windowMs: 60 * 1000, limit: 40, standardHeaders: true, legacyHeaders: false });
@@ -19,6 +21,7 @@ export function roomEndpoints(router, prefix, resolve) {
     const { room, role } = await resolve(req);
     assertAccessible(room);
     if (room.consultation_type !== 'chat') throw new HttpError(400, 'This consultation uses video.');
+    if (role === 'patient') touchPatient(room.id);
     res.set('Cache-Control', 'no-store').json({ messages: await listMessages(room, role) });
   }));
 
@@ -26,7 +29,9 @@ export function roomEndpoints(router, prefix, resolve) {
     const { room, role } = await resolve(req);
     assertAccessible(room);
     if (room.consultation_type !== 'chat') throw new HttpError(400, 'This consultation uses video.');
-    res.status(201).json({ message: await postMessage(room, role, req.body.body) });
+    const message = await postMessage(room, role, req.body.body);
+    if (role === 'doctor') notifyDoctorMessage(room).catch((e) => console.error('Doctor message email failed:', e.message));
+    res.status(201).json({ message });
   }));
 
   router.post(`${prefix}/video-token`, msgLimiter, wrap(async (req, res) => {

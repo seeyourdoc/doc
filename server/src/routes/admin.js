@@ -6,6 +6,7 @@ import { auth, requireAdmin } from '../middleware.js';
 import { getSettings, saveSettings } from '../lib/settings.js';
 import { roomStatus, toConsultStatus, EARLY_MS } from '../lib/rooms.js';
 import * as paystack from '../lib/paystack.js';
+import { sendMail } from '../lib/mailer.js';
 
 const r = Router();
 r.use(auth, requireAdmin);
@@ -97,7 +98,7 @@ r.post('/rooms/:id/extend', validate(z.object({ minutes: z.number().int().min(1)
   if (!room) throw new HttpError(404, 'Consultation not found.');
   const base = Math.max(new Date(room.expires_at).getTime(), Date.now());
   const { error } = await db.from('consultation_rooms')
-    .update({ expires_at: new Date(base + req.body.minutes * 60000).toISOString(), expiry_notified: false })
+    .update({ expires_at: new Date(base + req.body.minutes * 60000).toISOString(), expiry_notified: false, ending_notified: false })
     .eq('id', id);
   if (error) throw error;
   res.json({ ok: true });
@@ -209,6 +210,18 @@ r.patch('/doctors/:id', validate(z.object({ active: z.boolean() })), wrap(async 
   const { error } = await db.from('doctors').update({ active: req.body.active }).eq('id', idParam(req));
   if (error) throw error;
   res.json({ ok: true });
+}));
+
+// ---------- Email check ----------
+r.post('/test-email', validate(z.object({ to: z.string().trim().email().max(200) })), wrap(async (req, res) => {
+  const s = await getSettings();
+  const out = await sendMail({
+    to: req.body.to,
+    subject: `${s.site_name} test email`,
+    html: '<p>This is a test email from your SeeYourDoctor admin dashboard. If you can read it, patient emails are working.</p>',
+    kind: 'test'
+  });
+  res.json(out);
 }));
 
 // ---------- Website settings ----------

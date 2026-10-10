@@ -97,6 +97,9 @@ create table consultation_rooms (
   terminated boolean not null default false,
   reminder_sent boolean not null default false,
   expiry_notified boolean not null default false,
+  open_notified boolean not null default false,
+  ending_notified boolean not null default false,
+  last_msg_notice_at timestamptz,
   created_at timestamptz not null default now()
 );
 create index on consultation_rooms (doctor_id);

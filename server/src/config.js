@@ -8,6 +8,13 @@ const need = (k) => {
 
 const frontendUrl = need('FRONTEND_URL').replace(/\/$/, '');
 
+// Email: Gmail (GMAIL_USER + GMAIL_APP_PASSWORD) or any SMTP server (SMTP_*), else Resend, else emails are skipped.
+const gmailUser = (process.env.GMAIL_USER || '').trim();
+const gmailPass = (process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, ''); // Google shows app passwords in groups of 4
+const gmailMode = !!(gmailUser && gmailPass && !process.env.SMTP_HOST);
+const smtpHost = process.env.SMTP_HOST || (gmailMode ? 'smtp.gmail.com' : '');
+const smtpPort = Number(process.env.SMTP_PORT || 465);
+
 export const env = {
   port: Number(process.env.PORT || 3000),
   frontendUrl,
@@ -17,7 +24,12 @@ export const env = {
   livekitKey: need('LIVEKIT_API_KEY'),
   livekitSecret: need('LIVEKIT_API_SECRET'),
   resendKey: process.env.RESEND_API_KEY || '',
-  mailFrom: process.env.MAIL_FROM || 'SeeYourDoctor <onboarding@resend.dev>',
+  smtp: smtpHost
+    ? { host: smtpHost, port: smtpPort, secure: smtpPort === 465, user: process.env.SMTP_USER || gmailUser, pass: process.env.SMTP_PASS || gmailPass }
+    : null,
+  mailFrom: gmailMode
+    ? `SeeYourDoctor <${gmailUser}>` // Gmail always sends as the signed-in account
+    : process.env.MAIL_FROM || 'SeeYourDoctor <onboarding@resend.dev>',
   adminNotifyEmail: process.env.ADMIN_NOTIFY_EMAIL || ''
 };
 
