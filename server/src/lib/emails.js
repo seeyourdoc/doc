@@ -34,10 +34,12 @@ export function bookingConfirmed(s, b, room) {
         ['Starts (UTC)', utc(room.starts_at)],
         ['Access ends (UTC)', utc(room.expires_at)],
         ['Amount paid', money(b.amount_cents, b.currency)],
+        ...(b.access_code ? [['Your access code', b.access_code]] : []),
         ['Payment status', 'Success']
       ])}
       ${button(consultUrl(room.access_token), b.consultation_type === 'chat' ? 'Start chat with doctor' : 'Join video consultation')}
-      <p style="font-size:13px;color:#5B6B7F">This link is private to you. Please don't share it. Your access ends automatically when your package period is over.</p>`)
+      <p style="font-size:13px;color:#5B6B7F">This link is private to you. Please don't share it. Your access ends automatically when your package period is over.</p>
+      ${b.access_code ? `<p style="font-size:13px;color:#5B6B7F">To return to your consultation later, go to <a href="${esc(env.frontendUrl)}/return.html">${esc(env.frontendUrl)}/return.html</a> and enter this email address with your access code.</p>` : ''}`)
   };
 }
 

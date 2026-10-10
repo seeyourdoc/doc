@@ -33,6 +33,15 @@ export function bookingCode() {
   return `SYD-${s}`;
 }
 
+// Short code a patient uses (with their email) to return to a consultation: first name + 4 digits, e.g. Moses4821.
+export function accessCode(fullName) {
+  const first = String(fullName || '').trim().split(/\s+/)[0] || '';
+  const letters = first.normalize('NFD').replace(/[^A-Za-z]/g, '').slice(0, 12);
+  const name = letters ? letters[0].toUpperCase() + letters.slice(1).toLowerCase() : 'Patient';
+  return `${name}${crypto.randomInt(1000, 10000)}`;
+}
+export const normCode = (s) => String(s ?? '').replace(/\s+/g, '').toLowerCase();
+
 export function safeEqual(a, b) {
   const x = Buffer.from(String(a));
   const y = Buffer.from(String(b));

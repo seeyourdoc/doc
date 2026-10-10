@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>Return to your consultation</title><link rel="stylesheet" href="css/style.css">
+</head><body>
+<header id="site-header" class="site"></header>
+<main><div class="wrap" style="max-width:460px">
+  <h1>Return to your consultation</h1>
+  <p class="muted">Enter the email address you booked with and the access code you saved after paying.</p>
+  <form class="card" id="f" novalidate>
+    <div id="err" class="err hidden" role="alert"></div>
+    <label class="f" for="email">Email address</label><input id="email" type="email" autocomplete="email" maxlength="200" required>
+    <label class="f" for="code">Access code</label><input id="code" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="30" placeholder="For example, Moses4821" required>
+    <button class="btn btn-primary" style="margin-top:20px" id="go">OPEN MY CONSULTATION</button>
+  </form>
+  <p class="muted" id="help" style="margin-top:16px;font-size:.9rem">Lost your code? Check the booking email we sent you.</p>
+</div></main>
+<footer id="site-footer" class="site"></footer>
+<script src="js/config.js"></script><script src="js/common.js"></script>
+<script>
+loadSite({ title: 'Return to your consultation' }).then((s) => {
+  if (s.contact_email) $('#help').innerHTML = `Lost your code? Check the booking email we sent you, or contact <a href="mailto:${esc(s.contact_email)}">${esc(s.contact_email)}</a>.`;
+}).catch(() => {});
+$('#f').onsubmit = async (e) => {
+  e.preventDefault();
+  const err = $('#err'), btn = $('#go');
+  err.classList.add('hidden');
+  const email = $('#email').value.trim(), code = $('#code').value.trim();
+  if (!/^\S+@\S+\.\S+$/.test(email)) { err.textContent = 'Please enter the email address you booked with.'; err.classList.remove('hidden'); return; }
+  if (code.length < 4) { err.textContent = 'Please enter your access code.'; err.classList.remove('hidden'); return; }
+  btn.disabled = true; btn.textContent = 'CHECKING…';
+  try {
+    const r = await api('/api/bookings/access', { method: 'POST', body: { email, code } });
+    location.href = 'consult.html?t=' + encodeURIComponent(r.token);
+  } catch (er) {
+    err.textContent = er.message; err.classList.remove('hidden');
+    btn.disabled = false; btn.textContent = 'OPEN MY CONSULTATION';
+  }
+};
+</script></body></html>

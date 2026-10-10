@@ -5,8 +5,42 @@
 </head><body>
 <header id="site-header" class="site"></header>
 <main><div class="wrap" id="out"><div class="center"><div class="spinner"></div><p>Confirming your payment…</p></div></div></main>
+<dialog id="codeDlg" aria-labelledby="codeTitle"><div class="dlg">
+  <h2 id="codeTitle">Save your access code</h2>
+  <p class="muted">You will need this code, together with the email address you booked with, to return to your consultation chat or video room later.</p>
+  <div class="codebox"><span class="code" id="codeVal"></span><button type="button" class="btn btn-outline btn-sm" id="copyBtn">Copy</button></div>
+  <label class="check"><input type="checkbox" id="codeAck"><span>I have copied my access code and understand I need it to return to my consultation.</span></label>
+  <button type="button" class="btn btn-primary" id="codeGo" disabled>CONTINUE</button>
+</div></dialog>
 <footer id="site-footer" class="site"></footer>
 <script src="js/config.js"></script><script src="js/common.js"></script>
+<script>
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch {
+    try {
+      const ta = document.createElement('textarea'); ta.value = t; ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy'); ta.remove(); return ok;
+    } catch { return false; }
+  }
+}
+function showCode(code, ref) {
+  const key = 'syd_ack_' + ref;
+  try { if (sessionStorage.getItem(key)) return; } catch {}
+  const dlg = $('#codeDlg'), ack = $('#codeAck'), go = $('#codeGo'), copy = $('#copyBtn');
+  $('#codeVal').textContent = code;
+  dlg.addEventListener('cancel', (e) => { if (!ack.checked) e.preventDefault(); }); // Esc cannot skip it
+  ack.onchange = () => { go.disabled = !ack.checked; };
+  copy.onclick = async () => {
+    const ok = await copyText(code);
+    copy.textContent = ok ? 'Copied' : 'Select the code and copy it';
+    setTimeout(() => { copy.textContent = 'Copy'; }, 2500);
+  };
+  go.onclick = () => { try { sessionStorage.setItem(key, '1'); } catch {} dlg.close(); };
+  dlg.showModal();
+}
+</script>
 <script>
 (async () => {
   const s = await loadSite({ title: 'Payment' });
@@ -31,10 +65,12 @@
   if (kind === 'contribution') return msg('Thank you for supporting the doctor.', `We received your contribution of ${money(r.amount_cents, r.currency)}.`, '<p><a href="index.html">Back to home</a></p>');
 
   const b = r.booking;
-  const rows = [['Patient name', b.patient_name], ['Booking ID', b.booking_code], ['Consultation package', b.package_name], ['Duration', b.duration_label], ['Amount paid', money(b.amount_cents, b.currency)], ['Consultation type', typeLabel(b.consultation_type)], ['Consultation date/time', fmtDT(b.preferred_at)], ['Payment status', 'Success']];
+  const rows = [['Patient name', b.patient_name], ['Booking ID', b.booking_code], ...(r.access_code ? [['Your access code', r.access_code]] : []), ['Consultation package', b.package_name], ['Duration', b.duration_label], ['Amount paid', money(b.amount_cents, b.currency)], ['Consultation type', typeLabel(b.consultation_type)], ['Consultation date/time', fmtDT(b.preferred_at)], ['Payment status', 'Success']];
   out.innerHTML = `<div class="center"><h1>BOOKING CONFIRMED</h1><p class="muted">We also emailed these details and your private link.</p></div>
     <div class="card"><table class="summary">${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table></div>
     <p style="margin-top:20px"><a class="btn btn-primary" href="${esc(r.consult_url.replace(/^.*\/consult\.html/, 'consult.html'))}">${b.consultation_type === 'chat' ? 'START CHAT WITH DOCTOR' : 'JOIN VIDEO CONSULTATION'}</a></p>
+    ${r.access_code ? '<div class="notice">To return later, open <strong>Return to your consultation</strong> on the homepage and enter your email with your access code.</div>' : ''}
     <div class="notice">Keep your private link safe. Anyone with it can open your consultation. ${esc(s.emergency_disclaimer)}</div>`;
+  if (r.access_code) showCode(r.access_code, ref);
 })();
 </script></body></html>

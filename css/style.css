@@ -123,3 +123,7 @@ dialog::backdrop{background:rgba(10,30,60,.45)}
 .group{margin-bottom:28px}
 .cons{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px}
 .cons .btn{width:auto;padding:10px 18px;font-size:.88rem}
+
+/* access code popup */
+.codebox{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border:2px dashed var(--blue);border-radius:12px;padding:14px 16px;margin:16px 0;background:var(--soft)}
+.codebox .code{font:600 clamp(1.6rem,7vw,2.1rem) "Source Serif 4",Georgia,serif;color:var(--blue);letter-spacing:.02em;word-break:break-all;user-select:all}

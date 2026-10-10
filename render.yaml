@@ -15,7 +15,7 @@ services:
     plan: starter
     envVars:
       - key: NODE_VERSION
-        value: "20"
+        value: "22"
 
       # Public addresses (not secret, but you must set them)
       - key: FRONTEND_URL        # e.g. https://yourname.github.io/seeyourdoctor

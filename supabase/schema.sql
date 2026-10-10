@@ -49,6 +49,7 @@ create table bookings (
   consultation_type text not null check (consultation_type in ('chat','video')),
   preferred_at timestamptz not null,
   notes text not null default '',
+  access_code text,
   payment_status text not null default 'pending' check (payment_status in ('pending','success','failed','refunded')),
   consultation_status text not null default 'pending' check (consultation_status in ('pending','scheduled','active','completed','terminated')),
   created_at timestamptz not null default now()
