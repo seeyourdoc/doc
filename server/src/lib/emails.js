@@ -1,7 +1,6 @@
 import { env } from '../config.js';
-import { esc, durationLabel, money } from './util.js';
+import { esc, durationLabel, money, when, safeTz } from './util.js';
 
-const utc = (iso) => new Date(iso).toUTCString().replace('GMT', 'UTC');
 
 const layout = (s, title, body) => `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#12263F;line-height:1.55">
@@ -31,13 +30,14 @@ export function bookingConfirmed(s, b, room) {
         ['Booking ID', b.booking_code],
         ['Package', `${b.package_name} (${durationLabel(b.duration_minutes)})`],
         ['Consultation type', type],
-        ['Starts (UTC)', utc(room.starts_at)],
-        ['Access ends (UTC)', utc(room.expires_at)],
+        ['Starts', when(room.starts_at, b.timezone)],
+        ['Access ends', when(room.expires_at, b.timezone)],
         ['Amount paid', money(b.amount_cents, b.currency)],
         ...(b.access_code ? [['Your access code', b.access_code]] : []),
         ['Payment status', 'Success']
       ])}
       ${button(consultUrl(room.access_token), b.consultation_type === 'chat' ? 'Start chat with doctor' : 'Join video consultation')}
+      ${safeTz(b.timezone) ? `<p style="font-size:13px;color:#5B6B7F">Times are shown in your time zone (${esc(safeTz(b.timezone))}).</p>` : ''}
       <p style="font-size:13px;color:#5B6B7F">This link is private to you. Please don't share it. Your access ends automatically when your package period is over.</p>
       ${b.access_code ? `<p style="font-size:13px;color:#5B6B7F">To return to your consultation later, go to <a href="${esc(env.frontendUrl)}/return.html">${esc(env.frontendUrl)}/return.html</a> and enter this email address with your access code.</p>` : ''}`)
   };
@@ -47,7 +47,7 @@ export function reminder(s, b, room) {
   return {
     subject: `Your consultation starts soon — ${b.booking_code}`,
     html: layout(s, 'Your consultation starts soon', `
-      <p>Hello ${esc(b.users.full_name)}, your consultation begins at <strong>${esc(utc(room.starts_at))}</strong>.</p>
+      <p>Hello ${esc(b.users.full_name)}, your consultation begins at <strong>${esc(when(room.starts_at, b.timezone))}</strong>.</p>
       ${button(consultUrl(room.access_token), 'Open your consultation')}`)
   };
 }
@@ -57,7 +57,7 @@ export function consultationOpen(s, b, room) {
     subject: `Your consultation is open — ${b.booking_code}`,
     html: layout(s, 'Your consultation is open', `
       <p>Hello ${esc(b.users.full_name)}, your consultation room is now open. You can go in whenever you are ready.</p>
-      ${rows([['Booking ID', b.booking_code], ['Access ends (UTC)', utc(room.expires_at)]])}
+      ${rows([['Booking ID', b.booking_code], ['Access ends', when(room.expires_at, b.timezone)]])}
       ${button(consultUrl(room.access_token), b.consultation_type === 'chat' ? 'Open chat with doctor' : 'Join video consultation')}`)
   };
 }
@@ -66,7 +66,7 @@ export function endingSoon(s, b, room) {
   return {
     subject: `Your consultation access ends soon — ${b.booking_code}`,
     html: layout(s, 'Your consultation access ends soon', `
-      <p>Hello ${esc(b.users.full_name)}, your access to booking <strong>${esc(b.booking_code)}</strong> ends at <strong>${esc(utc(room.expires_at))}</strong>, in about 30 minutes. Please finish any remaining questions before then.</p>
+      <p>Hello ${esc(b.users.full_name)}, your access to booking <strong>${esc(b.booking_code)}</strong> ends at <strong>${esc(when(room.expires_at, b.timezone))}</strong>, in about 30 minutes. Please finish any remaining questions before then.</p>
       ${button(consultUrl(room.access_token), 'Open consultation')}`)
   };
 }
@@ -110,7 +110,9 @@ export function adminNewBooking(s, b, room) {
       ['Phone', b.users.phone || '—'],
       ['Package', `${b.package_name} (${durationLabel(b.duration_minutes)})`],
       ['Type', b.consultation_type],
-      ['Starts (UTC)', utc(room.starts_at)],
+      ['Starts (patient time)', when(room.starts_at, b.timezone)],
+      ['Starts (UTC)', when(room.starts_at, 'UTC')],
+      ['Patient time zone', safeTz(b.timezone) || 'unknown (shown in UTC)'],
       ['Amount', money(b.amount_cents, b.currency)]
     ]))
   };

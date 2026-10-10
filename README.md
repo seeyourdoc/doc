@@ -50,7 +50,7 @@ Open `login.html`, sign in as admin, then:
 ## Returning patients
 After paying, the patient sees a popup with an **access code** (first name plus 4 digits, for example `Moses4821`) and must tick that they have copied it. To come back later they open **Return to your consultation** on the homepage (`return.html`) and enter the email they booked with plus the code. Five wrong tries lock that email for 30 minutes. Admins can see each booking's code in the booking details. The code is also in the confirmation email.
 
-Existing databases need this once in the Supabase SQL editor: `supabase/migrations/001_access_code.sql`. Run it **before** deploying the new server code.
+Existing databases need this once in the Supabase SQL editor: `supabase/migrations/001_access_code.sql`. Also run `002_notifications.sql` and `003_timezone.sql` (patient time zones for emails). Run them **before** deploying the new server code.
 
 ## Local development
 Node 22 LTS. `cd server && cp .env.example .env && npm install && npm run dev`, then serve the repo root with any static server and point `API_BASE` at `http://localhost:3000` (add that origin to `ALLOWED_ORIGINS`).

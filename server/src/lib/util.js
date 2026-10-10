@@ -63,3 +63,14 @@ export const money = (cents, cur) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: cur }).format(cents / 100);
 
 export const one = (x) => (Array.isArray(x) ? x[0] ?? null : x ?? null);
+
+// ---- time zones ----
+export function safeTz(tz) {
+  try { if (tz) { new Intl.DateTimeFormat('en-US', { timeZone: String(tz) }); return String(tz); } } catch { /* fall through */ }
+  return null;
+}
+// Format an instant in the patient's own time zone. Without a known zone, show UTC clearly labelled.
+export function when(iso, tz) {
+  const timeZone = safeTz(tz) || 'UTC';
+  return new Date(iso).toLocaleString('en-US', { timeZone, weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+}

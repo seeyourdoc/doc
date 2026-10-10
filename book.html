@@ -101,7 +101,7 @@
     if (step < 3) { step++; show(); return; }
     const btn = $('#next'); btn.disabled = true; btn.textContent = 'OPENING PAYMENT…';
     try {
-      const r = await api('/api/bookings', { method: 'POST', body: { package_id: sel('pkg'), consultation_type: sel('type'), full_name: val('full_name'), email: val('email'), phone: val('phone'), country: val('country'), preferred_at: new Date(val('when')).toISOString(), notes: val('notes'), accept_disclaimer: true } });
+      const r = await api('/api/bookings', { method: 'POST', body: { package_id: sel('pkg'), consultation_type: sel('type'), full_name: val('full_name'), email: val('email'), phone: val('phone'), country: val('country'), preferred_at: new Date(val('when')).toISOString(), timezone: (Intl.DateTimeFormat().resolvedOptions().timeZone || ''), notes: val('notes'), accept_disclaimer: true } });
       location.href = r.authorization_url;
     } catch (e) {
       btn.disabled = false; btn.textContent = 'PAY & BOOK';

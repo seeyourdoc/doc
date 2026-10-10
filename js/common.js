@@ -6,7 +6,7 @@
   window.$ = (s, r = document) => r.querySelector(s);
   window.esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   window.money = (c, cur) => new Intl.NumberFormat(undefined, { style: 'currency', currency: cur || 'USD' }).format(c / 100);
-  window.fmtDT = (iso) => (iso ? new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '—');
+  window.fmtDT = (iso) => (iso ? new Date(iso).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }) : '—');
   window.durationLabel = (min) => {
     const f = (n, a, b) => `${n} ${n === 1 ? a : b}`;
     if (min % 10080 === 0) return f(min / 10080, 'Week', 'Weeks');

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { db, env } from '../config.js';
-import { wrap, validate, HttpError, bookingCode, refId, durationLabel, one, accessCode, normCode, safeEqual } from '../lib/util.js';
+import { wrap, validate, HttpError, bookingCode, refId, durationLabel, one, accessCode, normCode, safeEqual, safeTz } from '../lib/util.js';
 import { lockedFor, recordFail, clearFails } from '../lib/attempts.js';
 import { getSettings, bookingState } from '../lib/settings.js';
 import * as paystack from '../lib/paystack.js';
@@ -22,6 +22,7 @@ const schema = z.object({
   phone: z.string().trim().min(6).max(30).regex(/^[0-9+()\-\s]+$/, 'Enter a valid phone number'),
   country: z.string().trim().min(2).max(80),
   preferred_at: z.string().datetime(),
+  timezone: z.string().trim().max(64).optional(),
   notes: z.string().trim().max(1000).optional().default(''),
   accept_disclaimer: z.literal(true, { errorMap: () => ({ message: 'You must accept the notice to continue' }) })
 });
@@ -64,6 +65,7 @@ r.post('/', createLimiter, validate(schema), wrap(async (req, res) => {
       consultation_type: b.consultation_type,
       preferred_at: new Date(b.preferred_at).toISOString(),
       notes: b.notes,
+      timezone: safeTz(b.timezone),
       access_code: code
     })
     .select()
