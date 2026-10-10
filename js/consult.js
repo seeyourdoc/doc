@@ -81,9 +81,22 @@
   // ---------- video (LiveKit) ----------
   const stateText = { connected: 'Connected', connecting: 'Connecting…', reconnecting: 'Connection lost, reconnecting…', disconnected: 'Disconnected' };
   const setConn = (st) => { $('#conn').textContent = stateText[st] || st; };
+  // Make the frame the same shape as the incoming picture, so portrait and landscape cameras both fit.
+  const frame = () => $('#video .video');
+  function fitRemote(el) {
+    const w = el.videoWidth, h = el.videoHeight;
+    if (w && h) frame().style.setProperty('--ar', Math.min(1.9, Math.max(0.5, w / h)).toFixed(3));
+  }
+  function fitLocal(el) {
+    const w = el.videoWidth, h = el.videoHeight, box = $('#local');
+    if (!w || !h) return;
+    box.style.aspectRatio = String(w / h);
+    box.style.width = w >= h ? '26%' : '18%';
+  }
   const updateWait = () => {
     const has = $('#remote').querySelector('video');
     $('#wait').classList.toggle('hidden', !!has);
+    if (!has) frame().style.removeProperty('--ar');
     const other = isStaff ? 'patient' : 'doctor';
     if (!has && room) $('#wait').textContent = room.remoteParticipants.size
       ? `The ${other} has joined, but their camera is off or unavailable.`
@@ -91,7 +104,7 @@
   };
   function showJoin() {
     $('#vctl').innerHTML = '<button class="btn btn-primary btn-sm" id="join">Join video consultation</button>';
-    $('#join').onclick = join; $('#remote').innerHTML = ''; $('#local').innerHTML = '';
+    $('#join').onclick = join; $('#remote').innerHTML = ''; $('#local').innerHTML = ''; frame().style.removeProperty('--ar');
     $('#wait').classList.remove('hidden'); $('#wait').textContent = 'Press “Join video consultation” to start.';
   }
   function leaveVideo() { exitFs(); if (room) { room.disconnect(); room = null; } }
@@ -127,7 +140,12 @@
   function attachLocal() {
     const pub = room?.localParticipant.getTrackPublication(LK.Track.Source.Camera);
     $('#local').innerHTML = '';
-    if (pub?.track && !pub.isMuted) { const el = pub.track.attach(); el.muted = true; $('#local').appendChild(el); }
+    if (pub?.track && !pub.isMuted) {
+      const el = pub.track.attach(); el.muted = true; $('#local').appendChild(el);
+      el.addEventListener('loadedmetadata', () => fitLocal(el));
+      el.addEventListener('resize', () => fitLocal(el));
+      fitLocal(el);
+    }
   }
   async function join() {
     $('#join').disabled = true; setConn('connecting');
@@ -137,7 +155,12 @@
       const E = LK.RoomEvent;
       room.on(E.TrackSubscribed, (track) => {
         const el = track.attach();
-        if (track.kind === 'video') $('#remote').replaceChildren(el); else $('#audio').appendChild(el);
+        if (track.kind === 'video') {
+          $('#remote').replaceChildren(el);
+          el.addEventListener('loadedmetadata', () => fitRemote(el));
+          el.addEventListener('resize', () => fitRemote(el));
+          fitRemote(el);
+        } else $('#audio').appendChild(el);
         updateWait();
       });
       room.on(E.TrackUnsubscribed, (track) => { track.detach().forEach((el) => el.remove()); updateWait(); });
