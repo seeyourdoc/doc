@@ -24,6 +24,9 @@ export const env = {
   livekitKey: need('LIVEKIT_API_KEY'),
   livekitSecret: need('LIVEKIT_API_SECRET'),
   resendKey: process.env.RESEND_API_KEY || '',
+  brevoKey: (process.env.BREVO_API_KEY || '').trim(),
+  brevoSender: (process.env.BREVO_SENDER_EMAIL || gmailUser || '').trim(),
+  brevoName: (process.env.BREVO_SENDER_NAME || 'SeeYourDoctor').trim(),
   smtp: smtpHost
     ? { host: smtpHost, port: smtpPort, secure: smtpPort === 465, user: process.env.SMTP_USER || gmailUser, pass: process.env.SMTP_PASS || gmailPass }
     : null,

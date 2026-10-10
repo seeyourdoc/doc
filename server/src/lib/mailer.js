@@ -34,8 +34,20 @@ export async function sendMail({ to, subject, html, kind, bookingId = null }) {
   let status = 'sent';
   let error = null;
   try {
-    const t = smtp();
-    if (t) {
+    const t = env.brevoKey ? null : smtp();
+    if (env.brevoKey) {
+      if (!env.brevoSender) throw new Error('Set BREVO_SENDER_EMAIL to the sender address you verified in Brevo.');
+      const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'api-key': env.brevoKey, 'Content-Type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ sender: { name: env.brevoName, email: env.brevoSender }, to: [{ email: to }], subject, htmlContent: html, textContent: toText(html) }),
+        signal: AbortSignal.timeout(15000)
+      });
+      if (!r.ok) {
+        status = 'failed';
+        error = (await r.text()).slice(0, 500);
+      }
+    } else if (t) {
       await t.sendMail({ from: env.mailFrom, to, subject, html, text: toText(html) });
     } else if (env.resendKey) {
       const r = await fetch('https://api.resend.com/emails', {
@@ -49,7 +61,7 @@ export async function sendMail({ to, subject, html, kind, bookingId = null }) {
       }
     } else {
       status = 'skipped';
-      error = 'No email provider is set. Add GMAIL_USER and GMAIL_APP_PASSWORD (or RESEND_API_KEY).';
+      error = 'No email provider is set. Add BREVO_API_KEY (works on free Render), or GMAIL_USER and GMAIL_APP_PASSWORD (needs a paid Render plan), or RESEND_API_KEY.';
     }
   } catch (e) {
     status = 'failed';
