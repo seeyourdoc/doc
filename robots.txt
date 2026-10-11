@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /doc/admin.html
+Disallow: /doc/doctor.html
+Disallow: /doc/login.html
+Disallow: /doc/consult.html
+Disallow: /doc/return.html
+Disallow: /doc/confirmation.html
+
+Sitemap: https://seeyourdoc.github.io/doc/sitemap.xml
