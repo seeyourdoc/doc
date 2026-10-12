@@ -93,21 +93,47 @@
     box.style.aspectRatio = String(w / h);
     box.style.width = w >= h ? '26%' : '18%';
   }
+  // ---------- waiting screen: cover photo, details and voice introduction (patient side only) ----------
+  const cover = {
+    img: s?.waiting_cover_url || '', title: s?.waiting_title || '', details: s?.waiting_details || '', audio: s?.waiting_audio_url || ''
+  };
+  const hasCover = !isStaff && !!(cover.img || cover.title || cover.details || cover.audio);
+  let introEl = null;
+  function setPlayLabel() { const b = $('#introBtn'); if (b) b.textContent = introEl && !introEl.paused ? 'Pause introduction' : 'Play voice introduction'; }
+  function startIntro() { // loops until the doctor joins
+    if (!cover.audio || isStaff) return;
+    if (!introEl) { introEl = new Audio(cover.audio); introEl.loop = true; introEl.addEventListener('ended', setPlayLabel); introEl.addEventListener('pause', setPlayLabel); introEl.addEventListener('play', setPlayLabel); }
+    introEl.play().catch(() => {}); // the browser may refuse until the person taps; the button covers that
+    setPlayLabel();
+  }
+  function stopIntro() { if (introEl) { introEl.pause(); introEl.currentTime = 0; } setPlayLabel(); }
+  function buildWait() {
+    const w = $('#wait');
+    if (!hasCover) { w.innerHTML = '<p id="waitmsg" style="margin:0"></p>'; return; }
+    w.classList.add('hascover');
+    if (cover.img && !cover.title && !cover.details) w.classList.add('poster'); // a finished poster: show it whole, add nothing over it
+    w.innerHTML = `${cover.img ? `<img class="coverimg" src="${esc(cover.img)}" alt="">` : ''}<div class="coverbody">${cover.title ? `<h2>${esc(cover.title)}</h2>` : ''}${cover.details ? `<p class="coverdetails">${esc(cover.details)}</p>` : ''}${cover.audio ? '<button type="button" class="btn btn-outline btn-sm" id="introBtn">Play voice introduction</button>' : ''}<p id="waitmsg"></p></div>`;
+    const b = $('#introBtn'); if (b) b.onclick = () => { if (introEl && !introEl.paused) introEl.pause(); else startIntro(); };
+  }
+  const waitMsg = (t) => { const m = $('#waitmsg'); if (m) m.textContent = t; };
+  buildWait();
+  waitMsg('Press “Join video consultation” to start.');
   const updateWait = () => {
     const has = $('#remote').querySelector('video');
     $('#wait').classList.toggle('hidden', !!has);
     if (!has) frame().style.removeProperty('--ar');
     const other = isStaff ? 'patient' : 'doctor';
-    if (!has && room) $('#wait').textContent = room.remoteParticipants.size
+    if (!has && room) waitMsg(room.remoteParticipants.size
       ? `The ${other} has joined, but their camera is off or unavailable.`
-      : `Waiting for the ${other} to join…`;
+      : `Waiting for the ${other} to join…`);
+    if (room && room.remoteParticipants.size) stopIntro(); // the doctor is here, so the recorded introduction ends
   };
   function showJoin() {
     $('#vctl').innerHTML = '<button class="btn btn-primary btn-sm" id="join">Join video consultation</button>';
     $('#join').onclick = join; $('#remote').innerHTML = ''; $('#local').innerHTML = ''; frame().style.removeProperty('--ar');
-    $('#wait').classList.remove('hidden'); $('#wait').textContent = 'Press “Join video consultation” to start.';
+    $('#wait').classList.remove('hidden'); waitMsg('Press “Join video consultation” to start.');
   }
-  function leaveVideo() { exitFs(); if (room) { room.disconnect(); room = null; } }
+  function leaveVideo() { stopIntro(); exitFs(); if (room) { room.disconnect(); room = null; } }
   // ---------- full screen ----------
   function fsEl() { return $('#video'); }
   function inFs() { return document.fullscreenElement === fsEl() || fsEl().classList.contains('pseudo-fs'); }
@@ -149,6 +175,7 @@
   }
   async function join() {
     $('#join').disabled = true; setConn('connecting');
+    startIntro(); // tapping Join counts as a user action, so the browser allows the sound
     try {
       const { url, token: lk } = await call('/video-token', { method: 'POST' });
       room = new LK.Room({ adaptiveStream: true, dynacast: true });

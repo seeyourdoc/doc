@@ -226,12 +226,18 @@ r.post('/test-email', validate(z.object({ to: z.string().trim().email().max(200)
 
 // ---------- Website settings ----------
 const httpUrl = z.string().trim().max(500).refine((v) => v === '' || /^https?:\/\//i.test(v), 'Must start with http:// or https://');
+// A full https link, or a file you uploaded into the site's assets folder, e.g. assets/cover.jpg
+const mediaUrl = z.string().trim().max(500).refine((v) => v === '' || /^https?:\/\//i.test(v) || /^assets\/[A-Za-z0-9_\-./]+$/.test(v) && !v.includes('..'), 'Use a full https:// link, or a file path like assets/cover.jpg');
 const dt = z.string().datetime().nullable();
 const settingsSchema = z.object({
   site_name: z.string().trim().min(1).max(80),
   doctor_name: z.string().trim().min(1).max(120),
   doctor_photo_url: httpUrl,
   doctor_description: z.string().trim().max(1000),
+  waiting_cover_url: mediaUrl,
+  waiting_title: z.string().trim().max(120),
+  waiting_details: z.string().trim().max(800),
+  waiting_audio_url: mediaUrl,
   contact_email: z.union([z.literal(''), z.string().trim().email().max(200)]),
   emergency_disclaimer: z.string().trim().min(1).max(800),
   terms_url: httpUrl,

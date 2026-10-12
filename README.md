@@ -55,3 +55,6 @@ Existing databases need this once in the Supabase SQL editor: `supabase/migratio
 
 ## Local development
 Node 22 LTS. `cd server && cp .env.example .env && npm install && npm run dev`, then serve the repo root with any static server and point `API_BASE` at `http://localhost:3000` (add that origin to `ALLOWED_ORIGINS`).
+
+## Video waiting screen (cover photo and voice introduction)
+Admin dashboard → Website Settings → **Video waiting screen**. Set a cover photo, a heading, details (services, hours, contact) and a voice introduction. For files, upload them to the `assets/` folder of your GitHub repo (for example `assets/cover.jpg`, `assets/intro.mp3`) and enter that path, or paste a full https link. Patients see this while waiting for you; the voice repeats from when they press Join (or the Play button) until you join. If you give only a cover photo and leave the heading and details empty, the photo is shown whole (use this for a finished poster). Keep the mp3 short (under 2 minutes) and under 3 MB.
