@@ -44,10 +44,20 @@ export async function getSettings(force = false) {
 }
 
 export async function saveSettings(patch) {
-  const rows = Object.entries(patch).map(([key, value]) => ({ key, value, updated_at: new Date().toISOString() }));
-  if (!rows.length) return;
-  const { error } = await db.from('site_settings').upsert(rows);
-  if (error) throw error;
+  // The value column is "jsonb not null", and the database turns a JSON null into a real NULL, which it refuses.
+  // So an emptied setting (for example a cleared date) is removed instead; getSettings() then falls back to its default.
+  const entries = Object.entries(patch);
+  const set = entries.filter(([, v]) => v !== null && v !== undefined);
+  const clear = entries.filter(([, v]) => v === null || v === undefined).map(([k]) => k);
+  if (set.length) {
+    const rows = set.map(([key, value]) => ({ key, value, updated_at: new Date().toISOString() }));
+    const { error } = await db.from('site_settings').upsert(rows, { onConflict: 'key' });
+    if (error) throw error;
+  }
+  if (clear.length) {
+    const { error } = await db.from('site_settings').delete().in('key', clear);
+    if (error) throw error;
+  }
   cache = null;
 }
 
